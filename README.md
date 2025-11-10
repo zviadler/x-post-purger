@@ -1,91 +1,104 @@
-# X Post Purger (no archive)
+# X Post Purger
 
-Delete your X (Twitter) posts directly from your profile **without** downloading the data archive.  
-Works by scraping visible tweet IDs from the DOM and calling the official DeleteTweet GraphQL endpoint, with rate-limit backoff and live progress.
+A userscript that automatically deletes **all posts** (tweets, retweets, replies) from your X (Twitter) account **directly from your profile**, without requiring the official data archive.  
+Runs fully in the browser using your authenticated session.
 
-> ⚠️ Use at your own risk. This action is irreversible and may violate X’s terms of service. You are responsible for your account.
+> ⚠️ Irreversible action. Use responsibly.  
+> To stop deletion at any moment: **close the browser tab**.
 
 ---
 
 ## Features
 
-- ✅ No archive export required  
-- ✅ One-click modal UI: **Start deletion**  
-- ✅ Live counter + progress bar  
-- ✅ Retweets handled via UI “Unretweet”  
-- ✅ Basic rate-limit backoff (429 / reset headers)  
-- ✅ Multilingual “posts” count detection (Hebrew/EN/ES/DE/TR/IT/RU, etc.)
+- ✅ Deletes **all** posts from your account  
+- ✅ No data archive needed  
+- ✅ Simple popup UI with **Start deletion** button  
+- ✅ Progress bar + live counter  
+- ✅ Handles retweets via the UI  
+- ✅ Automatic rate-limit handling (429 + reset timers)  
+- ✅ Detects post count in **multiple languages** (Hebrew, English, Spanish, German, Italian, Turkish, Russian, etc.)  
+- ✅ Runs client-side only
 
 ---
 
-## Install
+## Installation (Userscript)
 
-1. Install a userscript manager: **Tampermonkey** (Chrome/Edge/Brave/Firefox) or **Violentmonkey**.
-2. Create a new userscript and paste the contents of [`userscript.user.js`](./userscript.user.js).  
-   *(Or host the file and “Install from URL”.)*
-3. Disable other X deletion scripts to avoid UI conflicts.
+1. Install a userscript manager: **Tampermonkey** / **Violentmonkey**.
+2. Create a new script and paste the contents of `userscript.user.js`.
+3. Enable the script on:
+   - `x.com`
+   - `twitter.com`
+4. Refresh your profile page — a popup will appear.
 
 ---
 
 ## Usage
 
-1. Log into your X account and open your profile.
-2. A modal appears automatically.
-3. Click **Start deletion**.  
-   - The script will:
-     - Switch to **Tweets & replies** tab (if present).
-     - Collect visible tweet IDs from the timeline.
-     - Delete in small batches with short delays (and backoff if rate-limited).
-4. Keep the tab open. Refresh to verify progress if needed.
+1. Log into X and open **your profile**.
+2. A modal window will appear automatically.
+3. Click **Start deletion**.
+4. Keep the tab open until completion.  
+   - The script scrolls, collects visible post IDs, and deletes them via the X API.  
+   - Retweets are unretweeted using the UI button.  
+5. **To stop deletion**, simply close the tab.  
+   - Closing the tab immediately halts the loop and no more deletion requests are sent.
 
 ---
 
-## How it works
+## Running from the Browser Console (Alternative Method)
 
-- Collects tweet IDs from links like:  
-  `a[href*="/status/1234567890"]` inside `[data-testid="tweet"]`
-- Calls X’s DeleteTweet GraphQL endpoint with your session cookies (`ct0`, OAuth2Session).
-- When rate-limited, waits until `x-rate-limit-reset` or performs a short cooldown.
-- Removes deleted tweets from the DOM to reduce duplicates.
+If you prefer not to install a userscript manager, you can run the script directly:
+
+1. Open your profile on X.
+2. Press `F12` to open **DevTools**.
+3. Go to the **Console** tab.
+4. Paste the full contents of `userscript.user.js` into the console.
+5. Press **Enter**.
+
+The same popup UI will appear, and you can click **Start deletion**.
 
 ---
 
-## Known limits / Notes
+## How it Works
 
-- Heavy media timelines may spam network errors (404/500) from `video.twimg.com` — harmless and unrelated to deletion.
-- Extremely old posts may be slower to surface due to X’s infinite scroll.
-- Retweets: deleted via UI “Unretweet” (different API).
-- X can change DOM/endpoint details at any time.
+- Scrapes visible posts using selectors like:  
+  `a[href*="/status/"]` inside `[data-testid="tweet"]`
+- Sends authenticated DeleteTweet GraphQL requests using your session cookies:
+  - `authorization`
+  - `ct0` (CSRF)
+  - `OAuth2Session`
+- Respects rate limits and pauses when necessary.
+- Removes deleted posts from the DOM to minimize repeats.
+
+---
+
+## Notes & Limitations
+
+- Large profiles (100k+ posts) require long runtimes due to X's infinite scroll.
+- X may occasionally return 404/500 errors for old media URLs — harmless.
+- If X changes DOM structure, selectors may need updating.
+- Retweets require UI interaction since their API differs.
 
 ---
 
 ## Troubleshooting
 
-- **Modal didn’t show?** Refresh the page; ensure the userscript is enabled and running on `x.com` domains.
-- **TypeError with `.remove()`?** The script guards most DOM removals; make sure you’re on your profile page.
-- **Rate limit loops?** Increase the per-item delay in the script from `240ms` to `300–350ms`.
+### Modal does not appear
+- Refresh the page  
+- Ensure the script is enabled  
+- Make sure you're on **your profile**, not someone else’s
 
+### Deletion seems slow
+- X’s rate limits vary; the script automatically slows down to stay within safe bounds.
+
+### I want to stop the deletion
+- **Close the browser tab**  
 ---
 
-## Security & Privacy
+## Security
 
-- Runs locally in your browser; no data leaves your machine.
-- Uses your existing X session (cookies). Do not share recordings/logs with tokens.
-
----
-
-## Development
-
-- File: `userscript.user.js`
-- Main object: `TweetDeleter`
-- Key methods:
-  - `ensureOnProfileAndTweetCount()`
-  - `sendDeleteRequest(tweetId)`
-  - `slowDelete()` loop
-- PRs welcome for:
-  - Additional language cues for “posts”
-  - Better DOM selectors / resilience
-  - Pause/Resume button
+- All operations run locally in your browser.  
+- No data is uploaded anywhere.  
 
 ---
 
